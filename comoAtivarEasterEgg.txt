@@ -1,0 +1,2 @@
+Como ativar o easter egg:
+    enquanto estiver em jogo, digite "dog" e o easter egg ira ativar.
