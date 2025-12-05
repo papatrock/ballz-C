@@ -352,28 +352,33 @@ int main() {
 
         flick = al_get_timer_count(timer);
       }
-
+      dog[3] = '\0';
       /*easter egg*/
       // MUDAR PARA SE DIGITOU E O ULTIMO EASTER EGG JÁ ACABOU
-      if (strcmp(dog, "dog") == 0 && !easterEgg) {
-        easterEgg = true;
-        /*seta a posição inicial do easter egg*/
+  if (strcmp(dog, "dog") == 0 && !easterEgg) {
+    easterEgg = true;
+    dogX = DISPLAY_X + 100;
+    dogY = DISPLAY_Y / 2 - 200;
+
+    /* Verifique se a instancia existe antes de tocar para evitar crash */
+    if(dogMusicInstance) {
+        al_play_sample_instance(dogMusicInstance);
+    }
+
+    /* Reseta o vetor com terminador nulo */
+    dog[0] = '0';
+    dog[1] = '0';
+    dog[2] = '0';
+    dog[3] = '\0'; // Importante manter o terminador
+}
+
+if (easterEgg) {
+    if (!moveEasterEgg(&dogX, &dogY, matrizSquare)) {
+        easterEgg = false;
         dogX = DISPLAY_X + 100;
         dogY = DISPLAY_Y / 2 - 200;
-        /*inicia a musica*/
-        al_play_sample_instance(dogMusicInstance);
-        /*reseta o vetor dog*/
-        dog[0] = '0';
-        dog[1] = '0';
-        dog[2] = '0';
-      }
-
-      if (easterEgg)
-        if (!moveEasterEgg(&dogX, &dogY, matrizSquare)) {
-          easterEgg = false;
-          dogX = DISPLAY_X + 100;
-          dogY = DISPLAY_Y / 2 - 200;
-        }
+    }
+}
 
       /*
         Desenha as coisas
