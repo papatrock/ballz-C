@@ -126,21 +126,48 @@ void drawCollectedBalls(fila_t *f) {
 }
 
 void drawAim(fila_t *f, ALLEGRO_MOUSE_STATE mousepos, float y, float x, ALLEGRO_FONT *font, ALLEGRO_TRANSFORM transform) {
-  al_identity_transform(&transform);
-  al_translate_transform(&transform, -f->ini->ball->x, -f->ini->ball->y);
-  al_rotate_transform(
-      &transform, -sin((f->ini->ball->x - mousepos.x) / sqrt(pow(f->ini->ball->x - mousepos.x, 2) + pow(f->ini->ball->y - mousepos.y, 2))));
-  al_translate_transform(&transform, f->ini->ball->x, f->ini->ball->y);
-  al_use_transform(&transform);
 
-  al_draw_triangle(f->ini->ball->x - 5, f->ini->ball->y - 35, f->ini->ball->x + 5, f->ini->ball->y - 35, f->ini->ball->x,
-                   f->ini->ball->y - 60, al_map_rgb(250, 250, 250), 4);
-  al_draw_filled_circle(x, y - 40, 5, al_map_rgb(255, 255, 255));
+    float limiteY = f->ini->ball->y - 20;
 
-  al_identity_transform(&transform);
-  al_use_transform(&transform);
+    float targetX = mousepos.x;
+    float targetY = mousepos.y;
 
-  al_draw_textf(font, al_map_rgb(250, 250, 250), f->ini->ball->x, f->ini->ball->y - 35, ALLEGRO_ALIGN_CENTER, "%d", f->tamanho);
+    if (targetY > limiteY) {
+      targetY = limiteY;
+    }
+
+    float dx = targetX - f->ini->ball->x;
+    float dy = targetY - f->ini->ball->y;
+    float angle = atan2(dy, dx);
+    float rotationAngle = angle + (ALLEGRO_PI / 2.0); // Ajuste de +90 graus
+
+    // 2. Aplicar Transformação
+    al_identity_transform(&transform);
+    al_translate_transform(&transform, -f->ini->ball->x, -f->ini->ball->y); // Vai p/ origem
+    al_rotate_transform(&transform, rotationAngle);                         // Gira
+    al_translate_transform(&transform, f->ini->ball->x, f->ini->ball->y);   // Volta
+    al_use_transform(&transform);
+
+
+    al_draw_triangle(f->ini->ball->x - 5, f->ini->ball->y - 35,
+                    f->ini->ball->x + 5, f->ini->ball->y - 35,
+                    f->ini->ball->x,     f->ini->ball->y - 60,
+                    al_map_rgb(250, 250, 250), 4);
+
+    float espacamento = 20.0; // Distância entre os pontos
+    int qtd_pontos = 10;      // Quantos pontos desenhar (ou calcule baseado na distância do mouse)
+
+    for (int i = 1; i < qtd_pontos; i++) {
+        float py = (f->ini->ball->y - 60) - (i * espacamento);
+
+        al_draw_filled_circle(f->ini->ball->x, py, 3, al_map_rgb(200, 200, 200));
+    }
+
+
+    al_identity_transform(&transform);
+    al_use_transform(&transform);
+
+    al_draw_textf(font, al_map_rgb(250, 250, 250), f->ini->ball->x, f->ini->ball->y - 35, ALLEGRO_ALIGN_CENTER, "%d", f->tamanho);
 }
 
 void drawHud(int score, ALLEGRO_FONT *font, int highscore) {
@@ -264,89 +291,92 @@ void collectedBallMove(fila_t *f) {
   }
 }
 
+float get_overlap(float c1, float c2, float r1, float r2) {
+    return (r1 + r2) - fabs(c1 - c2);
+}
+
 int collide(fila_t *fila, fila_t *collectedBallsQueue, square_t matriz[10][10], ALLEGRO_SAMPLE *colideSample,
             ALLEGRO_SAMPLE_INSTANCE *collecteSample, int *score) {
-  for (int i = 0; i < 8; i++) {
-    for (int j = 0; j < 7; j++) {
-      if (matriz[i][j].lives > 0 || matriz[i][j].ball == true) {
-        for (nodo_f_t *tmp = fila->ini; tmp != NULL; tmp = tmp->prox) {
-          int bateu = 0;
 
-          if ((tmp->ball->dy > 0 && tmp->ball->y + fmax(VEL, RAIO) > matriz[i][j].y1 && tmp->ball->y < matriz[i][j].y1) &&
-              (tmp->ball->x + fmax(VEL, RAIO) > matriz[i][j].x1 && tmp->ball->x - fmax(VEL, RAIO) < matriz[i][j].x2)) {
-            if (matriz[i][j].ball == true) {
-              balls_t *ball = malloc(sizeof(balls_t));
-              if (!ball) return 0;
-              createBall(ball, (matriz[i][j].x1 + matriz[i][j].x2) / 2, (matriz[i][j].y1 + matriz[i][j].y2) / 2);
-              ball->dy = 15;
-              BallQueue(collectedBallsQueue, ball);
-              matriz[i][j].ball = false;
-              al_play_sample_instance(collecteSample);
-              continue;
-            }
-            al_play_sample(colideSample, 0.3, 0, 0.75, ALLEGRO_PLAYMODE_ONCE, NULL);
-            tmp->ball->dy *= -1;
-            bateu = 1;
-          }
-          // colisao em baixo
-          if ((tmp->ball->dy < 0) && (tmp->ball->y - fmax(VEL, RAIO) < matriz[i][j].y2) && (tmp->ball->y > matriz[i][j].y2) &&
-              (tmp->ball->x + fmax(VEL, RAIO) > matriz[i][j].x1) && (tmp->ball->x - fmax(VEL, RAIO) < matriz[i][j].x2)) {
-            if (matriz[i][j].ball == true) {
-              balls_t *ball = malloc(sizeof(balls_t));
-              if (!ball) return 0;
-              createBall(ball, (matriz[i][j].x1 + matriz[i][j].x2) / 2, (matriz[i][j].y1 + matriz[i][j].y2) / 2);
-              ball->dy = 15;
-              BallQueue(collectedBallsQueue, ball);
-              matriz[i][j].ball = false;
-              al_play_sample_instance(collecteSample);
-              continue;
-            }
-            al_play_sample(colideSample, 0.3, 0, 0.75, ALLEGRO_PLAYMODE_ONCE, NULL);
-            tmp->ball->dy *= -1;
-            bateu = 1;
-          }
-          // colisao do lado direito
-          if ((tmp->ball->dx < 0 && tmp->ball->x - fmax(VEL, RAIO) < matriz[i][j].x2 && tmp->ball->x > matriz[i][j].x2) &&
-              (tmp->ball->y - fmax(VEL, RAIO) < matriz[i][j].y2 && tmp->ball->y + fmax(VEL, RAIO) > matriz[i][j].y1)) {
-            if (matriz[i][j].ball == true) {
-              balls_t *ball = malloc(sizeof(balls_t));
-              if (!ball) return 0;
-              createBall(ball, (matriz[i][j].x1 + matriz[i][j].x2) / 2, (matriz[i][j].y1 + matriz[i][j].y2) / 2);
-              ball->dy = 15;
-              BallQueue(collectedBallsQueue, ball);
-              matriz[i][j].ball = false;
-              al_play_sample_instance(collecteSample);
-              continue;
-            }
-            al_play_sample(colideSample, 0.3, 0, 0.75, ALLEGRO_PLAYMODE_ONCE, NULL);
-            tmp->ball->dx *= -1;
-            bateu = 1;
-          }
-          // colisao do lado esquerdo
-          if ((tmp->ball->dx > 0 && tmp->ball->y + fmax(VEL, RAIO) > matriz[i][j].y1 && tmp->ball->y - fmax(VEL, RAIO) < matriz[i][j].y2) &&
-              (tmp->ball->x < matriz[i][j].x1 && tmp->ball->x + fmax(VEL, RAIO) > matriz[i][j].x1)) {
-            if (matriz[i][j].ball == true) {
-              balls_t *ball = malloc(sizeof(balls_t));
-              createBall(ball, (matriz[i][j].x1 + matriz[i][j].x2) / 2, (matriz[i][j].y1 + matriz[i][j].y2) / 2);
-              ball->dy = 15;
-              BallQueue(collectedBallsQueue, ball);
-              matriz[i][j].ball = false;
-              al_play_sample_instance(collecteSample);
-              continue;
-            }
-            al_play_sample(colideSample, 0.3, 0, 0.75, ALLEGRO_PLAYMODE_ONCE, NULL);
-            tmp->ball->dx *= -1;
-            bateu = 1;
-          }
+    // Defina o tamanho da bola (considerando o RAIO ou a caixa de colisão usada)
+    float ball_half_w = RAIO;
+    float ball_half_h = RAIO;
 
-          if (bateu) matriz[i][j].lives = matriz[i][j].lives - 1;
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 7; j++) {
+            // Se o bloco não existe e não é uma bola coletável, pule
+            if (matriz[i][j].lives <= 0 && matriz[i][j].ball == false) continue;
 
-          if (matriz[i][j].lives < 0) matriz[i][j].lives = 0;
+            // Pré-cálculos do bloco (assumindo que x1,y1 é topo-esquerda e x2,y2 baixo-direita)
+            float block_w = matriz[i][j].x2 - matriz[i][j].x1;
+            float block_h = matriz[i][j].y2 - matriz[i][j].y1;
+            float block_center_x = matriz[i][j].x1 + (block_w / 2.0);
+            float block_center_y = matriz[i][j].y1 + (block_h / 2.0);
+            float block_half_w = block_w / 2.0;
+            float block_half_h = block_h / 2.0;
+
+            for (nodo_f_t *tmp = fila->ini; tmp != NULL; tmp = tmp->prox) {
+
+                // 1. Verificação Genérica de Colisão (AABB)
+                // Se a bola não estiver tocando o retângulo, continue.
+                if (tmp->ball->x + ball_half_w < matriz[i][j].x1 ||
+                    tmp->ball->x - ball_half_w > matriz[i][j].x2 ||
+                    tmp->ball->y + ball_half_h < matriz[i][j].y1 ||
+                    tmp->ball->y - ball_half_h > matriz[i][j].y2) {
+                    continue; // Sem colisão
+                }
+
+                // --- HOUVE COLISÃO ---
+
+                // Tratamento especial para "Bola Coletável" (Lógica do seu jogo)
+                if (matriz[i][j].ball == true) {
+                    balls_t *ball = malloc(sizeof(balls_t));
+                    if (!ball) return 0; // Erro de alocação
+                    createBall(ball, block_center_x, block_center_y);
+                    ball->dy = 15;
+                    BallQueue(collectedBallsQueue, ball);
+                    matriz[i][j].ball = false;
+                    al_play_sample_instance(collecteSample);
+                    continue; // Pula a física de rebote pois a bola foi coletada
+                }
+
+                // 2. Calcular Sobreposições (Overlaps)
+                float overlapX = (block_half_w + ball_half_w) - fabs(block_center_x - tmp->ball->x);
+                float overlapY = (block_half_h + ball_half_h) - fabs(block_center_y - tmp->ball->y);
+
+                // 3. Resolver Colisão baseada na MENOR sobreposição
+                if (overlapX < overlapY) {
+                    // Colisão Horizontal (Laterais)
+
+                    // Empurra a bola para fora do bloco para não grudar
+                    if (tmp->ball->x < block_center_x)
+                        tmp->ball->x -= overlapX; // Empurra para esquerda
+                    else
+                        tmp->ball->x += overlapX; // Empurra para direita
+
+                    tmp->ball->dx *= -1; // Inverte direção X
+
+                } else {
+                    // Colisão Vertical (Cima/Baixo)
+
+                    // Empurra a bola para fora
+                    if (tmp->ball->y < block_center_y)
+                        tmp->ball->y -= overlapY; // Empurra para cima
+                    else
+                        tmp->ball->y += overlapY; // Empurra para baixo
+
+                    tmp->ball->dy *= -1; // Inverte direção Y
+                }
+
+                // Aplica som e dano
+                al_play_sample(colideSample, 0.3, 0, 0.75, ALLEGRO_PLAYMODE_ONCE, NULL);
+
+                matriz[i][j].lives--;
+                if (matriz[i][j].lives < 0) matriz[i][j].lives = 0;
+            }
         }
-      }
     }
-  }
-  return 1;
+    return 1;
 }
 
 int readHightScore() {

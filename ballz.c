@@ -321,7 +321,17 @@ int main() {
           if (auxQueue->tamanho != 0 || collectedBallsQueue->tamanho != 0) {
             break;
           }
-          dir = atan2((event.mouse.y - ball->y), (event.mouse.x - ball->x));
+          float limiteY = ball->y - 20;
+
+          float targetY = event.mouse.y;
+
+          if (targetY > limiteY) {
+              targetY = limiteY; // Se foi, força o alvo a ser o limite
+          }
+
+          dir = atan2((targetY - ball->y), (event.mouse.x - ball->x));
+
+
           lancamento = true;
           lancamentoTemp = al_get_timer_count(timer);
           aux = ballsQueue->ini;

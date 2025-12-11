@@ -16,6 +16,9 @@
 #define SQUARE_N 49
 #define DISPLAY_X 640
 #define DISPLAY_Y 920
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 struct balls {
   float x;
