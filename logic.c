@@ -191,7 +191,7 @@ int spawnSquare(square_t matriz[10][10], int score) {
 
   for (int j = 0; j < 8; j++) {
     if (!rand() % 2) matriz[0][j].ball = true;
-    if (rand() % 3 && matriz[0][j].ball == false) matriz[0][j].lives = rand() % (score * 2);
+    if (rand() % 3 && matriz[0][j].ball == false) matriz[0][j].lives = rand() % (score * 4);
   }
 
   for (int i = 8; i >= 1; i--) {
